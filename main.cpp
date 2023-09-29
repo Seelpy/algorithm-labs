@@ -111,13 +111,8 @@ struct GearStore {
 };
 
 Direction getCorrectDirection(Direction dir) {
-    if (dir == empty) {
-        return empty;
-    }
-
-    if (dir == left) {
-        return right;
-    }
+    if (dir == empty) { return empty; }
+    if (dir == left) { return right; }
     return left;
 }
 
@@ -186,7 +181,7 @@ int main(int argc, char *argv[]) {
     GearStore store{};
     GearNode init_gear = {{1, right}, nullptr};
     store.push(init_gear);
-
+    std::cout<< "left" << left << " " << "right" << right << "\n";
     for (int i = 1; i < argc; i++) {
         PairGear pair = convertStringToPairGear(std::string(argv[i]));
         int id_a = pair.id_a;
@@ -207,13 +202,14 @@ int main(int argc, char *argv[]) {
                 g_b = tmp_g_b;
             }
         }
-
         if (!(isNormalDirections(g_a.dir, g_b.dir))) {
-            std::cout << ANSWER_ERROR_GEAR << LINE_SEPARATOR;
+            std::cout << ANSWER_ERROR_GEAR << LINE_SEPARATOR << std::string(argv[i]);
             return 0;
         }
 
+
         setDirections(&g_a, &g_b);
+        std::cout<< id_a << "|" << id_b << " " << g_a.dir << "|" << g_b.dir << "\n";
         store.push({g_a, nullptr});
         store.push({g_b, nullptr});
     }
