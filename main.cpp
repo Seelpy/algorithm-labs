@@ -14,12 +14,11 @@ C++ 17
 #include<windows.h>
 #include<string>
 #include<iostream>
+#include<vector>
 
 #define PAIR_START '('
 #define PAIR_END ')'
 #define ID_SEPARATOR ','
-
-#define ERROR_FIRST_ID "Первый id должен быть равен 1"
 
 #define ANSWER_ERROR_GEAR  "Шестиренки заклинит"
 
@@ -27,97 +26,76 @@ C++ 17
 #define RIGHT "right"
 #define EMPTY "no"
 
-#define LINE_SEPARATOR "\n"
+const int MAX_SIZE = 10;
 
 enum Direction {
-    left,
-    right,
-    empty,
+    left = 1,
+    right = 0,
+    empty = -1,
 };
 
-struct Gear {
-    int id ;
-    Direction dir;
+struct QueueNode {
+    int data;
+    QueueNode* next;
 };
 
-struct PairGear {
-    int id_a;
-    int id_b;
+// Структура для очереди
+struct Queue {
+    QueueNode* front;
 };
 
-struct GearNode {
-    Gear gear;
-    GearNode* next;
-};
-
-struct GearStore {
-    GearNode *head;
-
-    void push(GearNode gear_node) {
-        auto* node = new GearNode;
-        node->gear = gear_node.gear;
-        node->next = gear_node.next;
-        if (this->inStore(gear_node.gear.id)) {
-            return;
-        }
-        GearNode *left_node = this->findCorrectPlace(node);
-        if (left_node == nullptr) {
-
-            this->head = node;
-            return;
-        }
-
-        node->next = left_node->next;
-        left_node->next = node;
-    }
-
-    [[nodiscard]] Gear findGear(int id) const {
-        GearNode *node = head;
-        while (node != nullptr) {
-            if (node->gear.id == id) {
-                return node->gear;
-            }
-            node = node->next;
-        }
-        return {-1, empty};
-    }
-
-    GearNode* findCorrectPlace(GearNode *gear_node) const{
-        GearNode *node = this->head;
-        if (node == nullptr) {
-            return nullptr;
-        }
-
-        while (node->next != nullptr && gear_node->gear.id  >= node->gear.id) {
-            node = node->next;
-        }
-        return node;
-    }
-
-    [[nodiscard]] bool inStore(int id) const {
-        GearNode *node = head;
-        while (node != nullptr) {
-            if (node->gear.id == id) {
-                return true;
-            }
-            node = node->next;
-        }
-        return false;
-    }
-
-    [[nodiscard]] GearNode* getHead() const{
-        return this->head;
-    }
-};
-
-Direction getCorrectDirection(Direction dir) {
-    if (dir == empty) { return empty; }
-    if (dir == left) { return right; }
-    return left;
+// Функция для создания нового элемента очереди
+QueueNode* createQueueNode(int data) {
+    QueueNode* newNode = new QueueNode;
+    newNode->data = data;
+    newNode->next = nullptr;
+    return newNode;
 }
 
-PairGear convertStringToPairGear(const std::string& str_pair) {
-    PairGear pair{};
+// Функция для инициализации очереди
+Queue* createQueue() {
+    Queue* queue = new Queue;
+    queue->front = nullptr;
+    return queue;
+}
+
+// Функция для добавления элемента в конец очереди
+void push(Queue* queue, int data) {
+    QueueNode* newNode = createQueueNode(data);
+    if (queue->front == nullptr) {
+        queue->front = newNode;
+    } else {
+        queue->front->next = newNode;
+        queue->front = newNode;
+    }
+}
+
+bool emptyq(Queue* queue) {
+    return queue->front == nullptr;
+}
+
+int pop(Queue* queue) {
+    if (emptyq(queue)) {
+        return -1;
+    }
+
+    int data = queue->front->data;
+    QueueNode* temp = queue->front;
+
+    queue->front = queue->front->next;
+
+    delete temp;
+
+    return data;
+}
+
+struct Pair{
+    int a;
+    int b;
+};
+
+Pair convertStringToPairGear(const std::string& str_pair) {
+    Pair pair{};
     bool is_one = true;
     for (char ch : str_pair) {
         if (ch == PAIR_START) continue;
@@ -126,94 +104,69 @@ PairGear convertStringToPairGear(const std::string& str_pair) {
             is_one = false;
             continue;
         }
-
         if (is_one) {
-            pair.id_a = pair.id_a * 10  + (ch - '0');
+            pair.a = pair.a * 10  + (ch - '0');
         } else {
-            pair.id_b = pair.id_b * 10  + (ch - '0');
+            pair.b = pair.b * 10  + (ch - '0');
         }
     }
     return pair;
 }
 
-Gear createEptyGear(int id) {
-    return {
-            id,
-            empty
-    };
+void writeGearInfo(int id, Direction dir) {
+    std::cout<< id + 1 << ':' <<((dir == left) ? LEFT : (dir == right) ? RIGHT : (dir == empty) ? EMPTY: "") << "\n";
 }
-
-bool isNormalDirections(Direction dir_a, Direction dir_b) {
-    if (dir_a == empty || dir_b == empty) return true;
-    if (dir_a == dir_b) return false;
-    return true;
-}
-
-void setDirections(Gear *a, Gear *b) {
-    if (a->dir == empty) {
-        a->dir = getCorrectDirection(b->dir);
-    }
-    if (b->dir == empty) {
-        b->dir = getCorrectDirection(a->dir);
-    }
-}
-
-void writeGearInfo(Gear g) {
-    std::cout<< g.id << ':' <<((g.dir == left) ? LEFT : (g.dir == right) ? RIGHT : (g.dir == empty) ? EMPTY: "");
-}
-
-void writeSystemInfo(GearNode *head) {
-    GearNode *node = head;
-
-    while (node != nullptr) {
-        writeGearInfo(node->gear);
-        std::cout<< LINE_SEPARATOR;
-        node = node->next;
-    }
-}
-
 
 int main(int argc, char *argv[]) {
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
 
-    bool gear_error = false;
-    GearStore store{};
-    GearNode init_gear = {{1, right}, nullptr};
-    store.push(init_gear);
-    std::cout<< "left" << left << " " << "right" << right << "\n";
+    std::vector<std::vector<int>> connections(MAX_SIZE, std::vector<int>(MAX_SIZE, 0));
+    std::vector<int> rotate(MAX_SIZE, -2);
+    Queue* q = createQueue();
+
+
     for (int i = 1; i < argc; i++) {
-        PairGear pair = convertStringToPairGear(std::string(argv[i]));
-        int id_a = pair.id_a;
-        int id_b = pair.id_b;
-        Gear g_a = createEptyGear(id_a);
-        Gear g_b = createEptyGear(id_b);
-
-        if (store.inStore(id_a)) {
-            Gear tmp_g_a = store.findGear(id_a);
-            if (tmp_g_a.id > 0) {
-                g_a = tmp_g_a;
-            }
-        }
-
-        if (store.inStore(id_b)) {
-            Gear tmp_g_b = store.findGear(id_b);
-            if (tmp_g_b.id > 0) {
-                g_b = tmp_g_b;
-            }
-        }
-        if (!(isNormalDirections(g_a.dir, g_b.dir))) {
-            std::cout << ANSWER_ERROR_GEAR << LINE_SEPARATOR << std::string(argv[i]);
-            return 0;
-        }
-
-
-        setDirections(&g_a, &g_b);
-        std::cout<< id_a << "|" << id_b << " " << g_a.dir << "|" << g_b.dir << "\n";
-        store.push({g_a, nullptr});
-        store.push({g_b, nullptr});
+        Pair pair = convertStringToPairGear(argv[i]);
+        connections[pair.a - 1][pair.b - 1] = 1;
+        connections[pair.b - 1][pair.a - 1] = 1;
+        rotate[pair.a - 1] = -1;
+        rotate[pair.b - 1] = -1;
     }
 
-    writeSystemInfo(store.getHead());
+    rotate[0] = 0;
+    push(q, 0);
+
+    bool rotationPossible = true;
+
+    while (!emptyq(q) && rotationPossible) {
+        int currentGear = pop(q);
+
+        for (int i = 0; i < MAX_SIZE; i++) {
+            if (rotate[i] == -2) {
+                continue;
+            }
+            if (connections[currentGear][i] == 1) {
+                if (rotate[i] == -1) {
+                    rotate[i] = 1 - rotate[currentGear];
+                    push(q, i);
+                } else if (rotate[i] == rotate[currentGear]) {
+                    rotationPossible = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!rotationPossible) {
+        std::cout<<ANSWER_ERROR_GEAR<<"\n";
+        return 0;
+    }
+    for (int i = 0; i < MAX_SIZE; i++) {
+        if (rotate[i] == -2) {
+            continue;
+        }
+        writeGearInfo(i, Direction(rotate[i]));
+    }
     return 0;
 }
