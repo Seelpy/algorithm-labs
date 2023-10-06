@@ -15,18 +15,21 @@ C++ 17
 #include<string>
 #include<iostream>
 #include<vector>
+#include <fstream>
 
 #define PAIR_START '('
 #define PAIR_END ')'
 #define ID_SEPARATOR ','
 
-#define ANSWER_ERROR_GEAR  "Шестиренки заклинит"
+#define ANSWER_ERROR_GEAR  "Шестеренки заклинит"
+#define INPUT_FILE_NAME "input.txt"
+#define OUTPUT_FILE_NAME "output.txt"
 
 #define LEFT "left"
 #define RIGHT "right"
 #define EMPTY "no"
 
-const int MAX_SIZE = 10;
+const int MAX_SIZE = 10000;
 
 enum Direction {
     left = 1,
@@ -64,10 +67,10 @@ void push(Queue* queue, int data) {
     QueueNode* newNode = createQueueNode(data);
     if (queue->front == nullptr) {
         queue->front = newNode;
-    } else {
-        queue->front->next = newNode;
-        queue->front = newNode;
+        return;
     }
+    newNode->next = queue->front;
+    queue->front = newNode;
 }
 
 bool emptyq(Queue* queue) {
@@ -113,9 +116,10 @@ Pair convertStringToPairGear(const std::string& str_pair) {
     return pair;
 }
 
-void writeGearInfo(int id, Direction dir) {
-    std::cout<< id + 1 << ':' <<((dir == left) ? LEFT : (dir == right) ? RIGHT : (dir == empty) ? EMPTY: "") << "\n";
+void writeGearInfo(std::ofstream *out_f, int id, Direction dir) {
+    *out_f<< id + 1 << ':' <<((dir == left) ? LEFT : (dir == right) ? RIGHT : (dir == empty) ? EMPTY: "") << "\n";
 }
+
 
 int main(int argc, char *argv[]) {
     SetConsoleCP(1251);
@@ -125,9 +129,22 @@ int main(int argc, char *argv[]) {
     std::vector<int> rotate(MAX_SIZE, -2);
     Queue* q = createQueue();
 
+    std::ifstream in_f;
+    in_f.open(INPUT_FILE_NAME);
 
-    for (int i = 1; i < argc; i++) {
-        Pair pair = convertStringToPairGear(argv[i]);
+    std::ofstream out_f;
+    out_f.open(OUTPUT_FILE_NAME);
+    while (!in_f.eof()) {
+        char ch;
+        std::string s;
+        while (ch != '\n' && !in_f.eof()) {
+            in_f.get(ch);
+            s += ch;
+        }
+        if (!in_f.eof()) {
+            in_f.get(ch);
+        }
+        Pair pair = convertStringToPairGear(s);
         connections[pair.a - 1][pair.b - 1] = 1;
         connections[pair.b - 1][pair.a - 1] = 1;
         rotate[pair.a - 1] = -1;
@@ -166,7 +183,9 @@ int main(int argc, char *argv[]) {
         if (rotate[i] == -2) {
             continue;
         }
-        writeGearInfo(i, Direction(rotate[i]));
+        writeGearInfo(&out_f, i, Direction(rotate[i]));
     }
+    in_f.close();
+    out_f.close();
     return 0;
 }
