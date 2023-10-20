@@ -1,191 +1,149 @@
 /*
-24. На  плоскости  расположена  система  из  N  шестеренок,
-которая  приводится  в  движение  вращением  шестеренки  1  по
-часовой стрелке.  Сцепленные шестеренки могут вращаться только
-в    противоположных    направлениях.   Требуется   определить
-направление движения каждой шестеренки  либо  установить,  что
-систему   заклинит.   Некоторые   шестеренки   могут  остаться
-неподвижными (11).
+28. В офисе фирмы  Megasoft  установлены  N  компьютеров  с 
+номерами от 1 до N, некоторые из них  соединены  между  собой. 
+Сообщение между соединенными компьютерами проходит в любом  из 
+двух направлений за 1 с. Компьютер,  получив  сообщение, сразу 
+отправляет  его  всем  соединенным  с  ним  компьютерам.  Cеть 
+устроена так, что между любыми двумя компьютерами  есть  путь, 
+причем только один. Найти номера всех компьютеров,  с  которых 
+главный программист Гилл Бейтс может отправить сообщение  так, 
+чтобы максимальная задержка в  получении  сообщения  была  как 
+можно меньше. 
+  Ввод из файла INPUT.TXT. В первой строке вводится значение N 
+(1<=N<=10^5). В каждой из следующих N-1  строк  вводится через 
+пробел пара номеров компьютеров, обозначающая соединение.
+  Вывод в файл OUTPUT.TXT. В первой строке выводится количество
+искомых компьютеров M. Во второй строке выдаются через пробел в
+порядке возрастания номера искомых компьютеров.
+  Время счета не должно превышать 2 сек.
+  Пример
+  Ввод
+4
+1 2
+4 3
+2 3
+  Вывод
+2
+2 3
+  Указание. Предложить структуру данных, обеспечивающую быстрое
+нахождение листьев бескорневого дерева из условия задачи (14).
 Выполнил: Веселов Максим ПС-21
-IDE: CLion
+IDE: VS Code
 C++ 17
 */
-
-#include<windows.h>
-#include<string>
-#include<iostream>
-#include<vector>
+#include <iostream>
+#include <vector>
 #include <fstream>
 
-#define PAIR_START '('
-#define PAIR_END ')'
-#define ID_SEPARATOR ','
 
-#define ANSWER_ERROR_GEAR  "Шестеренки заклинит"
-#define INPUT_FILE_NAME "input.txt"
-#define OUTPUT_FILE_NAME "output.txt"
-
-#define LEFT "left"
-#define RIGHT "right"
-#define EMPTY "no"
-
-const int MAX_SIZE = 10000;
-
-enum Direction {
-    left = 1,
-    right = 0,
-    empty = -1,
-};
-
-struct QueueNode {
-    int data;
-    QueueNode* next;
-};
-
-// Структура для очереди
-struct Queue {
-    QueueNode* front;
-};
-
-// Функция для создания нового элемента очереди
-QueueNode* createQueueNode(int data) {
-    QueueNode* newNode = new QueueNode;
-    newNode->data = data;
-    newNode->next = nullptr;
-    return newNode;
-}
-
-// Функция для инициализации очереди
-Queue* createQueue() {
-    Queue* queue = new Queue;
-    queue->front = nullptr;
-    return queue;
-}
-
-// Функция для добавления элемента в конец очереди
-void push(Queue* queue, int data) {
-    QueueNode* newNode = createQueueNode(data);
-    if (queue->front == nullptr) {
-        queue->front = newNode;
-        return;
-    }
-    newNode->next = queue->front;
-    queue->front = newNode;
-}
-
-bool emptyq(Queue* queue) {
-    return queue->front == nullptr;
-}
-
-int pop(Queue* queue) {
-    if (emptyq(queue)) {
+int findMax(const std::vector<int>& numbers) {
+    if (numbers.empty()) {
+        // Если вектор пуст, вернем некое значение по умолчанию, например, -1.
         return -1;
     }
 
-    int data = queue->front->data;
-    QueueNode* temp = queue->front;
+    int max = numbers[0];  // Предположим, что первый элемент - максимальный.
 
-    queue->front = queue->front->next;
+    for (int i = 1; i < numbers.size(); ++i) {
+        if (numbers[i] > max) {
+            max = numbers[i];  // Если находим больший элемент, обновляем max.
+        }
+    }
 
-    delete temp;
-
-    return data;
+    return max;
 }
 
-struct Pair{
-    int a;
-    int b;
-};
+int findMin(const std::vector<int>& numbers) {
+    if (numbers.empty()) {
+        // Если вектор пуст, вернем некое значение по умолчанию, например, -1.
+        return -1;
+    }
 
-Pair convertStringToPairGear(const std::string& str_pair) {
-    Pair pair{};
-    bool is_one = true;
-    for (char ch : str_pair) {
-        if (ch == PAIR_START) continue;
-        if (ch == PAIR_END) break;
-        if (ch == ID_SEPARATOR) {
-            is_one = false;
-            continue;
-        }
-        if (is_one) {
-            pair.a = pair.a * 10  + (ch - '0');
-        } else {
-            pair.b = pair.b * 10  + (ch - '0');
+    int min = findMax(numbers);  // Предположим, что первый элемент - максимальный.
+
+    for (int i = 1; i < numbers.size(); ++i) {
+        if (numbers[i] < min && numbers[i] != 0) {
+            min = numbers[i];  // Если находим больший элемент, обновляем max.
         }
     }
-    return pair;
+
+    return min;
 }
 
-void writeGearInfo(std::ofstream *out_f, int id, Direction dir) {
-    *out_f<< id + 1 << ':' <<((dir == left) ? LEFT : (dir == right) ? RIGHT : (dir == empty) ? EMPTY: "") << "\n";
+int dfs(int node, const std::vector<std::vector<int>>& adj_list, std::vector<bool>& visited, int distance, int& farthest_node) {
+    visited[node] = true;
+
+    std::vector<int> distances;
+
+    for (int neighbor : adj_list[node]) {
+        if (!visited[neighbor]) {
+            int new_distance = distance + 1;
+            int new_farthest_node = farthest_node;
+
+            distances.push_back(dfs(neighbor, adj_list, visited, new_distance, new_farthest_node));
+        }
+    }
+
+    if (distances.size() == 0) {
+        return distance;
+    }
+
+    return findMax(distances);;
 }
 
+std::vector<int> find_desired_computers(int N, const std::vector<std::pair<int, int>>& connections) {
+    std::vector<std::vector<int>> adj_list(N + 1);
 
-int main(int argc, char *argv[]) {
-    SetConsoleCP(1251);
-    SetConsoleOutputCP(1251);
-
-    std::vector<std::vector<int>> connections(MAX_SIZE, std::vector<int>(MAX_SIZE, 0));
-    std::vector<int> rotate(MAX_SIZE, -2);
-    Queue* q = createQueue();
-
-    std::ifstream in_f;
-    in_f.open(INPUT_FILE_NAME);
-
-    std::ofstream out_f;
-    out_f.open(OUTPUT_FILE_NAME);
-    while (!in_f.eof()) {
-        char ch;
-        std::string s;
-        while (ch != '\n' && !in_f.eof()) {
-            in_f.get(ch);
-            s += ch;
-        }
-        if (!in_f.eof()) {
-            in_f.get(ch);
-        }
-        Pair pair = convertStringToPairGear(s);
-        connections[pair.a - 1][pair.b - 1] = 1;
-        connections[pair.b - 1][pair.a - 1] = 1;
-        rotate[pair.a - 1] = -1;
-        rotate[pair.b - 1] = -1;
+    for (const auto& connection : connections) {
+        int a = connection.first;
+        int b = connection.second;
+        adj_list[a].push_back(b);
+        adj_list[b].push_back(a);
     }
 
-    rotate[0] = 0;
-    push(q, 0);
+    std::vector<int> desired_computers;
 
-    bool rotationPossible = true;
-
-    while (!emptyq(q) && rotationPossible) {
-        int currentGear = pop(q);
-
-        for (int i = 0; i < MAX_SIZE; i++) {
-            if (rotate[i] == -2) {
-                continue;
-            }
-            if (connections[currentGear][i] == 1) {
-                if (rotate[i] == -1) {
-                    rotate[i] = 1 - rotate[currentGear];
-                    push(q, i);
-                } else if (rotate[i] == rotate[currentGear]) {
-                    rotationPossible = false;
-                    break;
-                }
-            }
-        }
+    std::vector<bool> visited(N + 1, false);
+    std::vector<int> distances(N + 1, 0);
+    
+    for (int i = 1; i <= N; i++) {
+        int distance = 0;
+        int farthest_node = i;
+        std::vector<bool> visited(N + 1, false);
+        distance = dfs(farthest_node, adj_list, visited, distance, farthest_node);
+        distances[i] = distance;
     }
 
-    if (!rotationPossible) {
-        std::cout<<ANSWER_ERROR_GEAR<<"\n";
-        return 0;
+    int min_distance = findMin(distances);
+
+    for (int i = 1; i <= N; i++) {
+       if (distances[i] == min_distance) {
+            desired_computers.push_back(i);
+       }
     }
-    for (int i = 0; i < MAX_SIZE; i++) {
-        if (rotate[i] == -2) {
-            continue;
-        }
-        writeGearInfo(&out_f, i, Direction(rotate[i]));
+
+    return desired_computers;
+}
+
+int main() {
+    std::ifstream input("INPUT.TXT");
+    std::ofstream output("OUTPUT.TXT");
+
+    int N;
+    input >> N;
+
+    std::vector<std::pair<int, int>> connections(N - 1);
+    for (int i = 0; i < N - 1; i++) {
+        input >> connections[i].first >> connections[i].second;
     }
-    in_f.close();
-    out_f.close();
+
+    std::vector<int> desired_computers = find_desired_computers(N, connections);
+
+    output << desired_computers.size() << '\n';
+    for (int computer : desired_computers) {
+        output << computer << ' ';
+    }
+    output << '\n';
+
     return 0;
 }
