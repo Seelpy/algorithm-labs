@@ -34,62 +34,105 @@ C++ 17
 #include <iostream>
 #include <vector>
 #include <fstream>
-
+#include <set>
 
 int findMax(const std::vector<int>& numbers) {
-    if (numbers.empty()) {
-        // Если вектор пуст, вернем некое значение по умолчанию, например, -1.
-        return -1;
-    }
-
-    int max = numbers[0];  // Предположим, что первый элемент - максимальный.
+    int max = numbers[0];
 
     for (int i = 1; i < numbers.size(); ++i) {
         if (numbers[i] > max) {
-            max = numbers[i];  // Если находим больший элемент, обновляем max.
+            max = numbers[i];
         }
     }
 
     return max;
 }
 
-int findMin(const std::vector<int>& numbers) {
-    if (numbers.empty()) {
-        // Если вектор пуст, вернем некое значение по умолчанию, например, -1.
-        return -1;
-    }
+std::vector<int> findIds(const std::vector<int>& numbers, int max) {
+    std::vector<int> ids;
 
-    int min = findMax(numbers);  // Предположим, что первый элемент - максимальный.
-
-    for (int i = 1; i < numbers.size(); ++i) {
-        if (numbers[i] < min && numbers[i] != 0) {
-            min = numbers[i];  // Если находим больший элемент, обновляем max.
+    for (int i = 1; i <= numbers.size(); ++i) {
+        if (numbers[i] == max) {
+            ids.push_back(i);
         }
     }
 
-    return min;
+    return ids;
 }
 
-int dfs(int node, const std::vector<std::vector<int>>& adj_list, std::vector<bool>& visited, int distance, int& farthest_node) {
+int findSecondMax(const std::vector<int>& numbers) {
+    int max = 0;
+    int second_max = 0;
+
+    for (int i = 1; i < numbers.size(); ++i) {
+        if (numbers[i] > max) {
+            second_max = max;
+            max = numbers[i];
+        } else if (numbers[i] > second_max && numbers[i] != max) {
+            second_max = numbers[i];
+        }
+    }
+
+    return second_max;
+}
+
+void dfs(int node, const std::vector<std::vector<int>>& adj_list, std::vector<bool>& visited, std::vector<int>& node_distances, int distance, int& farthest_node) {
     visited[node] = true;
 
-    std::vector<int> distances;
+    node_distances[node] = distance;
 
     for (int neighbor : adj_list[node]) {
         if (!visited[neighbor]) {
             int new_distance = distance + 1;
             int new_farthest_node = farthest_node;
-
-            distances.push_back(dfs(neighbor, adj_list, visited, new_distance, new_farthest_node));
+            dfs(neighbor, adj_list, visited, node_distances, new_distance, new_farthest_node);
         }
     }
+}
 
-    if (distances.size() == 0) {
-        return distance;
+int getFather(int node, const std::vector<std::vector<int>>& adj_list, std::vector<int> distances) {
+    int id;
+     for (int neighbor : adj_list[node]) {
+        if (distances[neighbor] < distances[node]) {
+            return neighbor;
+        }
+    }
+    std::cout<<"ERROR";
+    return -1;
+}
+
+std::vector<int> forwardDfs(int node, const std::vector<std::vector<int>>& adj_list, std::vector<int> distances) {
+    std::vector<int> track;
+    track.push_back(node);
+    while (distances[node] != 0) {
+        int father = getFather(node, adj_list, distances);
+        track.push_back(father);
+        node = father;
     }
 
-    return findMax(distances);;
+    return track;
 }
+void print(std::vector<int> const &input) {
+    for (int i = 0; i < input.size(); i++) {
+        std::cout << input.at(i) << ' ';
+    }
+    std::cout << std::endl;
+}
+
+std::vector<int> findPetals(const std::vector<std::vector<int>>& adj_list, std::vector<int> distances) {
+    std::vector<int> petals;
+    petals.push_back(0);
+    for (int i = 1; i <= adj_list.size(); i ++){
+        if (adj_list[i].size() == 1) {
+            petals.push_back(distances[i]);
+        } else {
+            petals.push_back(0);
+        }
+    }
+    return petals;
+}
+
+
 
 std::vector<int> find_desired_computers(int N, const std::vector<std::pair<int, int>>& connections) {
     std::vector<std::vector<int>> adj_list(N + 1);
@@ -105,24 +148,29 @@ std::vector<int> find_desired_computers(int N, const std::vector<std::pair<int, 
 
     std::vector<bool> visited(N + 1, false);
     std::vector<int> distances(N + 1, 0);
+    int distance = 0;
+    int farthest_node = 1;
+    dfs(farthest_node, adj_list, visited, distances, distance, farthest_node);
+    std::vector<int> petals = findPetals(adj_list, distances);
     
-    for (int i = 1; i <= N; i++) {
-        int distance = 0;
-        int farthest_node = i;
-        std::vector<bool> visited(N + 1, false);
-        distance = dfs(farthest_node, adj_list, visited, distance, farthest_node);
-        distances[i] = distance;
+    int max = findMax(petals);
+    int second_max = findSecondMax(petals);
+    int dif = max - second_max;
+
+    std::vector<int> ids = findIds(petals, max);
+    for (const auto& node: ids) {
+        std::vector<int> track = forwardDfs(node, adj_list, distances);
+        if (dif % 2 == 0) {
+            desired_computers.push_back(track[track.size()  - 1 - dif/2]);
+        } else {
+            desired_computers.push_back(track[track.size()  - 1 - (dif + 1)/2]);
+            desired_computers.push_back(track[track.size()  - 1 - (dif - 1)/2]);
+        }
     }
 
-    int min_distance = findMin(distances);
+    std::set<int> s(desired_computers.begin(), desired_computers.end());
 
-    for (int i = 1; i <= N; i++) {
-       if (distances[i] == min_distance) {
-            desired_computers.push_back(i);
-       }
-    }
-
-    return desired_computers;
+    return std::vector<int>(s.begin(), s.end());
 }
 
 int main() {
@@ -139,11 +187,11 @@ int main() {
 
     std::vector<int> desired_computers = find_desired_computers(N, connections);
 
-    output << desired_computers.size() << '\n';
+    output << desired_computers.size() << std::endl;
     for (int computer : desired_computers) {
         output << computer << ' ';
     }
-    output << '\n';
+    output << std::endl;
 
     return 0;
 }
