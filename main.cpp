@@ -1,248 +1,197 @@
 /*
-23. В текстовом файле записан  отдельный  абзац.  Некоторые
-слова перенесены со строки на следующую строку.  Знак переноса
-'-'.  Выровнять строки абзаца по ширине. Иными словами, правые
-границы  строк  выравниваются  по  заданной  позиции  за  счет
-вставки дополнительных пробелов между словами.  Первая  строка
-абзаца должна иметь заданный отступ, а остальные строки должны
-начинаться  с  первой  позиции.  Последняя  строка  абзаца  по
-правому  краю  не  выравнивается. Переносы в выходном файле не
-        допускаются.  Число  строк в исходном и сконечном файлах может
-отличаться (9).
-
+28. В офисе фирмы  Megasoft  установлены  N  компьютеров  с
+номерами от 1 до N, некоторые из них  соединены  между  собой.
+Сообщение между соединенными компьютерами проходит в любом  из
+двух направлений за 1 с. Компьютер,  получив  сообщение, сразу
+отправляет  его  всем  соединенным  с  ним  компьютерам.  Cеть
+устроена так, что между любыми двумя компьютерами  есть  путь,
+причем только один. Найти номера всех компьютеров,  с  которых
+главный программист Гилл Бейтс может отправить сообщение  так,
+чтобы максимальная задержка в  получении  сообщения  была  как
+можно меньше.
+  Ввод из файла INPUT.TXT. В первой строке вводится значение N
+(1<=N<=10^5). В каждой из следующих N-1  строк  вводится через
+пробел пара номеров компьютеров, обозначающая соединение.
+  Вывод в файл OUTPUT.TXT. В первой строке выводится количество
+искомых компьютеров M. Во второй строке выдаются через пробел в
+порядке возрастания номера искомых компьютеров.
+  Время счета не должно превышать 2 сек.
+  Пример
+  Ввод
+4
+1 2
+4 3
+2 3
+  Вывод
+2
+2 3
+  Указание. Предложить структуру данных, обеспечивающую быстрое
+нахождение листьев бескорневого дерева из условия задачи (14).
 Выполнил: Веселов Максим ПС-21
-IDE: CLion
+IDE: VS Code
 C++ 17
 */
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <set>
 
+int findMax(const std::vector<int>& numbers) {
+    int max = numbers[0];
 
-#include<iostream>
-#include<fstream>
-#include<clocale>
-#include<string>
-#include<vector>
-#include<codecvt>
-#include<io.h>
-#include<fcntl.h>
-#include<windows.h>
-#include<cmath>
-
-#define ERROR_COUNT_CMD_ARG_MESSAGE L"Ошибка: неверное количество аргументов.\nПример команды: Lab1.exe input.txt output.txt 20"
-#define ERROR_OPEN_FILE L"Не удалось открыть файл"
-#define ERROR_ARG_COUNT L"Неверно введен парметра \"Количестов символов в строке\""
-#define ERROR_ARG_COUNT_IN_FIRST_LINE L"Неверно введен параметр \"Количество пробелов в первой строке\""
-
-#define WORDS_SEPARATOR ' '
-#define LINE_SEPARATOR '\n'
-#define DASH '-'
-
-bool is_number(const std::wstring &s) {
-    for (wchar_t ch: s) {
-        if (!std::isdigit(ch)) {
-            return false;
+    for (int i = 1; i < numbers.size(); ++i) {
+        if (numbers[i] > max) {
+            max = numbers[i];
         }
     }
-    return true;
+
+    return max;
 }
 
-bool isWordSeparator(wchar_t ch) { return ch == WORDS_SEPARATOR; }
+std::vector<int> findIds(const std::vector<int>& numbers, int max) {
+    std::vector<int> ids;
 
-bool isLineSeparator(wchar_t ch) { return ch == LINE_SEPARATOR; }
-
-bool isDash(wchar_t ch) { return ch == DASH; }
-
-std::wstring readWord(std::wifstream &in_f) {
-    std::wstring word;
-    wchar_t ch;
-    wchar_t ch1;
-
-    while (!(in_f.get(ch), in_f.eof())) {
-        if (isWordSeparator(ch) || (isLineSeparator(ch) && !isDash(ch1))) {
-            break;
+    for (int i = 1; i <= numbers.size(); ++i) {
+        if (numbers[i] == max) {
+            ids.push_back(i);
         }
+    }
 
-        if (isDash(ch1) && !isLineSeparator(ch)) {
-            word += ch1;
+    return ids;
+}
+
+int findSecondMax(const std::vector<int>& numbers) {
+    int max = 0;
+    int second_max = 0;
+
+    for (int i = 1; i < numbers.size(); ++i) {
+        if (numbers[i] > max) {
+            second_max = max;
+            max = numbers[i];
+        } else if (numbers[i] > second_max && numbers[i] != max) {
+            second_max = numbers[i];
         }
+    }
 
-        if (!((isLineSeparator(ch) && isDash(ch1)) || isDash(ch))) {
-            word += ch;
+    return second_max;
+}
+
+void dfs(int node, const std::vector<std::vector<int>>& adj_list, std::vector<bool>& visited, std::vector<int>& node_distances, int distance, int& farthest_node) {
+    visited[node] = true;
+
+    node_distances[node] = distance;
+
+    for (int neighbor : adj_list[node]) {
+        if (!visited[neighbor]) {
+            int new_distance = distance + 1;
+            int new_farthest_node = farthest_node;
+            dfs(neighbor, adj_list, visited, node_distances, new_distance, new_farthest_node);
         }
-
-        ch1 = ch;
     }
-    return word;
 }
 
-int lengthWords(std::vector<std::wstring> &words) {
-    int length = 0;
-    for (const std::wstring &word: words) {
-        length += (int) word.length();
+int getFather(int node, const std::vector<std::vector<int>>& adj_list, std::vector<int> distances) {
+    int id;
+    for (int neighbor : adj_list[node]) {
+        if (distances[neighbor] < distances[node]) {
+            return neighbor;
+        }
     }
-    return length;
+    std::cout<<"ERROR";
+    return -1;
 }
 
-int findCountSpace(int freeCountSpace, int emptyCountSectors) {
-    if (!freeCountSpace || !emptyCountSectors) {
-        return 0;
+std::vector<int> backwardDfs(int node, const std::vector<std::vector<int>>& adj_list, std::vector<int> distances) {
+    std::vector<int> track;
+    track.push_back(node);
+    while (distances[node] != 0) {
+        int father = getFather(node, adj_list, distances);
+        track.push_back(father);
+        node = father;
     }
-    return std::ceil((float) freeCountSpace / (float) emptyCountSectors);
+
+    return track;
+}
+void print(std::vector<int> const &input) {
+    for (int i = 0; i < input.size(); i++) {
+        std::cout << input.at(i) << ' ';
+    }
+    std::cout << std::endl;
 }
 
-std::wstring getSpaces(int countSpaces) {
-    std::wstring result;
-    std::wstring space = L" ";
-    for (int i = 0; i < countSpaces; i++) {
-        result.append(space);
-    }
-    return result;
-}
-
-std::vector<std::wstring> splitWord(std::wstring word, int split_index) {
-    std::vector<std::wstring> pair;
-    int word_len = word.length();
-    std::wstring first_part;
-    std::wstring second_part;
-    for (int i = 0; i < word_len; i++) {
-        if (i < split_index) {
-            first_part += word[i];
+std::vector<int> findPetals(const std::vector<std::vector<int>>& adj_list, std::vector<int> distances) {
+    std::vector<int> petals;
+    petals.push_back(0);
+    for (int i = 1; i <= adj_list.size(); i ++){
+        if (adj_list[i].size() == 1) {
+            petals.push_back(distances[i]);
         } else {
-            second_part += word[i];
+            petals.push_back(0);
         }
     }
-    pair.push_back(first_part);
-    pair.push_back(second_part);
-    return pair;
+    return petals;
 }
 
-std::wstring alignWords(std::vector<std::wstring> &words, int count_in_line) {
-    if (words.size() == 1) {
-        std::wstring word = words[0];
-        if (word.length() >= count_in_line) {
-            std::vector<std::wstring> pair = splitWord(word, count_in_line);
-            words[0] = pair[1];
-            return pair[0];
-        }
-        return word;
 
-    }
-    std::wstring result;
-    int words_count = words.size();
-    int length = (int) lengthWords(words) - words[words.size() - 1].length();
-    int count_sections = (words.size() - 1) - 1;
-    int free_spaces = count_in_line - length;
-    for (int i = 0; i < words_count; i++) {
-        if (words_count != 1 && words.size() <= 1) {
-            break;
-        }
-        std::wstring word = words[0];
-        words.erase(words.begin());
-        if (word.length() >= count_in_line) {
-            std::vector<std::wstring> pair = splitWord(word, free_spaces);
-            result.append(pair[0]);
-            words[0] = pair[1];
-            break;
-        }
-        result.append(word);
-        int count_spaces = findCountSpace(free_spaces, count_sections);
-        std::wcout << word << " " << count_spaces << "\n";
-        result.append(getSpaces(count_spaces));
-        free_spaces -= count_spaces;
-        count_sections--;
-    }
-    return result;
-}
 
-std::wstring wordsToString(std::vector<std::wstring> words) {
-    std::wstring result;
-    for (std::wstring &word: words) {
-        result.append(word);
-        result += WORDS_SEPARATOR;
-    }
-    return result;
-}
+std::vector<int> find_desired_computers(int N, const std::vector<std::pair<int, int>>& connections) {
+    std::vector<std::vector<int>> adj_list(N + 1);
 
-void readOneLine(std::vector<std::wstring> &old_words, std::wifstream &in_f, int count) {
-    int words_len = lengthWords(old_words);
-    while (!(in_f.eof()) && (words_len + int(old_words.size()) - 1 <= count)) {
-        std::wstring word = readWord(in_f);
-        if ((int) word.size()) {
-            words_len += (int) word.size();
-            old_words.push_back(word);
+    for (const auto& connection : connections) {
+        int a = connection.first;
+        int b = connection.second;
+        adj_list[a].push_back(b);
+        adj_list[b].push_back(a);
+    }
+
+    std::vector<int> desired_computers;
+
+    std::vector<bool> visited(N + 1, false);
+    std::vector<int> distances(N + 1, 0);
+    int distance = 0;
+    int farthest_node = 1;
+    dfs(farthest_node, adj_list, visited, distances, distance, farthest_node);
+    std::vector<int> petals = findPetals(adj_list, distances);
+
+    int max = findMax(petals);
+    int second_max = findSecondMax(petals);
+    int dif = max - second_max;
+
+    std::vector<int> ids = findIds(petals, max);
+    for (const auto& node: ids) {
+        std::vector<int> track = backwardDfs(node, adj_list, distances);
+        if (dif % 2 == 0) {
+            desired_computers.push_back(track[track.size()  - 1 - dif/2]);
+        } else {
+            desired_computers.push_back(track[track.size()  - 1 - (dif + 1)/2]);
+            desired_computers.push_back(track[track.size()  - 1 - (dif - 1)/2]);
         }
     }
-}
 
-void processingLine(std::wifstream &in_f, std::wofstream &out_f, std::vector<std::wstring> &words, int count_in_line, int count_space_in_first = 0) {
-    out_f << getSpaces(count_space_in_first);
-    readOneLine(words, in_f, count_in_line);
-    if (in_f.eof()) {
-        out_f << wordsToString(words) << LINE_SEPARATOR;
-        return;
-    }
-    out_f << alignWords(words, count_in_line - count_space_in_first) << LINE_SEPARATOR;
-}
+    std::set<int> s(desired_computers.begin(), desired_computers.end());
 
-void processingFile(std::wifstream &in_f, std::wofstream &out_f, int count_in_line, int count_space_in_first) {
-    std::vector<std::wstring> words;
-    if (!in_f.eof()) {
-        processingLine(in_f, out_f, words, count_in_line, count_space_in_first);
-    }
-    while (!in_f.eof()) {
-        processingLine(in_f, out_f, words, count_in_line);
-    }
+    return std::vector<int>(s.begin(), s.end());
 }
 
 int main() {
-    int argc;
-    wchar_t **argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    std::ifstream input("INPUT.TXT");
+    std::ofstream output("OUTPUT.TXT");
 
-    _setmode(_fileno(stdout), _O_U8TEXT);
-    _setmode(_fileno(stdin), _O_U8TEXT);
+    int N;
+    input >> N;
 
-    std::locale utf8_locale(std::locale(std::locale(), new std::codecvt_utf8<wchar_t>));
-    std::locale::global(utf8_locale);
-
-
-    if (argc != 5) {
-        std::wcout << ERROR_COUNT_CMD_ARG_MESSAGE;
-        exit(-1);
+    std::vector<std::pair<int, int>> connections(N - 1);
+    for (int i = 0; i < N - 1; i++) {
+        input >> connections[i].first >> connections[i].second;
     }
 
-    std::wstring input_filename(argv[1]);
-    std::wstring output_filename(argv[2]);
+    std::vector<int> desired_computers = find_desired_computers(N, connections);
 
-    std::wstring count_arg = argv[3];
-    if (!is_number(count_arg) || _wtoi(argv[3]) <= 0) {
-        std::wcout << ERROR_ARG_COUNT;
-        exit(-1);
+    output << desired_computers.size() << std::endl;
+    for (int computer : desired_computers) {
+        output << computer << ' ';
     }
-    int count_in_line = _wtoi(argv[3]);
+    output << std::endl;
 
-    std::wstring count_space_in_first_arg = argv[4];
-    if (!is_number(count_space_in_first_arg) || _wtoi(argv[4]) <= 0|| _wtoi(argv[4]) > count_in_line) {
-        std::wcout << ERROR_ARG_COUNT_IN_FIRST_LINE;
-        exit(-1);
-    }
-    int count_space_in_first = _wtoi(argv[4]);
-
-
-    std::wifstream in_f;
-    in_f.open(argv[1]);
-    if (!in_f.is_open()) {
-        std::wcout << ERROR_OPEN_FILE;
-        exit(-1);
-    }
-
-    std::wofstream out_f(argv[2]);
-    if (!out_f.is_open()) {
-        std::wcout << ERROR_OPEN_FILE;
-        exit(-1);
-    }
-
-    processingFile(in_f, out_f, count_in_line, count_space_in_first);
-
-    in_f.close();
-    out_f.close();
     return 0;
 }
