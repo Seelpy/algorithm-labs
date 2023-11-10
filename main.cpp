@@ -35,8 +35,10 @@ C++ 17
 #include <vector>
 #include <fstream>
 #include <algorithm>
+#include <chrono>
 
 #include <set>
+#include <map>
 
 void print(std::vector<int>* input) {
     for (auto n: *input) {
@@ -85,7 +87,7 @@ std::vector<int> deletedPetals1(std::vector<std::vector<int>*>& adj_list, std::v
     return petals;
 }
 
-std::vector<int> deletedPetals(std::vector<std::vector<int>*>& adj_list, std::vector<int>& deleted_petals) {
+std::vector<int> deletedPetals2(std::vector<std::vector<int>*>& adj_list, std::vector<int>& deleted_petals) {
     std::vector<int> petals;
 
     for (int i = 1; i < adj_list.size(); ++i) {
@@ -111,12 +113,54 @@ std::vector<int> deletedPetals(std::vector<std::vector<int>*>& adj_list, std::ve
     return petals;
 }
 
+std::map<int, std::vector<int>*> deletedPetals(std::map<int, std::vector<int>*>* adj_list, std::map<int, std::vector<int>*>* old_petals) {
+    std::vector<int> petals;
+    std::map<int, std::vector<int>*> feature_petals;
+    std::vector<std::pair<int, int>> petals_on_delete;
+
+    std::map<int, std::vector<int>*>* now_petals;
+    if (old_petals != nullptr) {
+        now_petals = old_petals;
+    } else {
+        now_petals = adj_list;
+    }
+
+    for (const auto& pair: *now_petals) {
+        if (pair.second->size() <= 1) {
+            petals.push_back(pair.first);
+            if (!pair.second->empty()) {
+                int tmp_id  = (*pair.second)[0];
+                feature_petals[tmp_id] = (*adj_list)[tmp_id];
+                petals_on_delete.push_back(std::pair<int, int>{pair.first, tmp_id});
+            }
+        }
+    }
+
+    for (auto p: petals_on_delete) {
+        auto list = (*adj_list)[p.second];
+        auto newEnd = std::remove(list->begin(), list->end(), p.first);
+        list->erase(newEnd, list->end());
+    }
+
+    for (auto id: petals) {
+        auto it = adj_list->find(id);
+        if (it != adj_list->end()) {
+            adj_list->erase(it);
+        }
+    }
+
+
+    return feature_petals;
+}
+
+
+
 
 std::vector<int> find_desired_computers(int N, const std::vector<std::pair<int, int>>& connections) {
-    std::vector<std::vector<int>*> adj_list;
-    for (int i = 0 ; i <= N; i++) {
-        std::vector<int>* m = new std::vector<int>;
-        adj_list.push_back(m);
+    std::map<int, std::vector<int>*> adj_list;
+    for (int i = 1; i <= N; i++) {
+        auto m = new std::vector<int>;
+        adj_list[i] = m;
     }
 
     for (const auto& connection : connections) {
@@ -126,20 +170,29 @@ std::vector<int> find_desired_computers(int N, const std::vector<std::pair<int, 
         adj_list[b]->push_back(a);
     }
 
-    std::vector<int> deleted_petals(N + 1, 0);
 
-    std::vector<int> petals = {};
-
+    std::map<int, std::vector<int>*> petals = {};
+    int i = 1;
     while (true) {
-        print2(adj_list);
-        std::cout<<"-- --- --- --- --\n";
-        petals = deletedPetals(adj_list, deleted_petals);
-        if (petals.size() <= 2) {
+        petals = deletedPetals(&adj_list, petals.empty() ? nullptr: &petals);
+
+        if (adj_list.size() <= 2) {
             break;
+        }
+
+        if (++i % 500 == 0 ) {
+            std::cout<<"I: " << i<< std::endl;
         }
     }
 
-    return petals;
+    std::vector<int> petals_ids;
+
+    // Iterate through the map and store keys in the vector
+    for (const auto& pair : adj_list) {
+        petals_ids.push_back(pair.first);
+    }
+
+    return petals_ids;
 }
 
 int main() {
@@ -154,7 +207,13 @@ int main() {
         input >> connections[i].first >> connections[i].second;
     }
 
+    auto start_time = std::chrono::high_resolution_clock::now();
     std::vector<int> desired_computers = find_desired_computers(N, connections);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
+    // Выводим время выполнения
+    std::cout << "Time work function: " << duration.count() << " millisecond\n";
 
     output << desired_computers.size() << std::endl;
     for (int computer : desired_computers) {
