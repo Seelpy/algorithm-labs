@@ -40,79 +40,6 @@ C++ 17
 #include <set>
 #include <map>
 
-void print(std::vector<int>* input) {
-    for (auto n: *input) {
-        std::cout << n << ' ';
-    }
-    std::cout << std::endl;
-}
-
-void print2(std::vector<std::vector<int>*> input) {
-    int i = 0;
-    for (auto v : input) {
-        std::cout<<i++<<": [";
-        print(v);
-        std::cout <<"]"<<std::endl;
-    }
-    std::cout << std::endl;
-}
-
-std::vector<int> deletedPetals1(std::vector<std::vector<int>*>& adj_list, std::vector<int>& deleted_petals) {
-    std::vector<int> petals;
-    for (int i = 1; i < adj_list.size(); i ++){
-        if (deleted_petals[i] == 1) {
-            continue;
-        }
-        if (adj_list[i]->size() == 1) {
-            petals.push_back(i);
-            deleted_petals[i] = 1;
-            adj_list[i]->erase(adj_list[i]->begin());
-            for (int j = 1; j < adj_list.size(); j++){
-                int index = -1;
-                for (int k = 0; k < adj_list[j]->size(); k++) {
-                    if (adj_list.at(j)->at(k) == i) {
-                        index = k;
-                        break;
-                    }
-                }
-                std::vector<int>* a = adj_list[j];
-                if (index == -1) {
-                    continue;
-                }
-                a->erase(std::next(a->begin(), index));
-            }
-        }
-    }
-
-    return petals;
-}
-
-std::vector<int> deletedPetals2(std::vector<std::vector<int>*>& adj_list, std::vector<int>& deleted_petals) {
-    std::vector<int> petals;
-
-    for (int i = 1; i < adj_list.size(); ++i) {
-        if (deleted_petals[i] == 1) {
-            continue;
-        }
-        if (adj_list[i]->size() <= 1) {
-            petals.push_back(i);
-        }
-    }
-
-    for (auto i: petals) {
-        int neighbor = (*adj_list[i])[0];
-        deleted_petals[i] = 1;
-
-        // Удаление текущего узла из соседних списков
-        for (int j = 1; j < adj_list.size(); ++j)
-            adj_list[j]->erase(std::remove(adj_list[j]->begin(), adj_list[j]->end(), i), adj_list[j]->end());
-
-        // Удаление текущего узла из соседнего списка
-        adj_list[neighbor]->erase(std::remove(adj_list[neighbor]->begin(), adj_list[neighbor]->end(), i), adj_list[neighbor]->end());
-    }
-    return petals;
-}
-
 std::map<int, std::vector<int>*> deletedPetals(std::map<int, std::vector<int>*>* adj_list, std::map<int, std::vector<int>*>* old_petals) {
     std::vector<int> petals;
     std::map<int, std::vector<int>*> feature_petals;
@@ -149,12 +76,8 @@ std::map<int, std::vector<int>*> deletedPetals(std::map<int, std::vector<int>*>*
         }
     }
 
-
     return feature_petals;
 }
-
-
-
 
 std::vector<int> find_desired_computers(int N, const std::vector<std::pair<int, int>>& connections) {
     std::map<int, std::vector<int>*> adj_list;
@@ -187,7 +110,6 @@ std::vector<int> find_desired_computers(int N, const std::vector<std::pair<int, 
 
     std::vector<int> petals_ids;
 
-    // Iterate through the map and store keys in the vector
     for (const auto& pair : adj_list) {
         petals_ids.push_back(pair.first);
     }
