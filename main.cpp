@@ -34,16 +34,28 @@ C++ 17
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <algorithm>
+
 #include <set>
 
-void print(std::vector<int>* const &input) {
-    for (int i = 0; i < input->size(); i++) {
-        std::cout << input->at(i) << ' ';
+void print(std::vector<int>* input) {
+    for (auto n: *input) {
+        std::cout << n << ' ';
     }
     std::cout << std::endl;
 }
 
-std::vector<int> deletedPetals(std::vector<std::vector<int>*>& adj_list, std::vector<int>& deleted_petals) {
+void print2(std::vector<std::vector<int>*> input) {
+    int i = 0;
+    for (auto v : input) {
+        std::cout<<i++<<": [";
+        print(v);
+        std::cout <<"]"<<std::endl;
+    }
+    std::cout << std::endl;
+}
+
+std::vector<int> deletedPetals1(std::vector<std::vector<int>*>& adj_list, std::vector<int>& deleted_petals) {
     std::vector<int> petals;
     for (int i = 1; i < adj_list.size(); i ++){
         if (deleted_petals[i] == 1) {
@@ -73,6 +85,32 @@ std::vector<int> deletedPetals(std::vector<std::vector<int>*>& adj_list, std::ve
     return petals;
 }
 
+std::vector<int> deletedPetals(std::vector<std::vector<int>*>& adj_list, std::vector<int>& deleted_petals) {
+    std::vector<int> petals;
+
+    for (int i = 1; i < adj_list.size(); ++i) {
+        if (deleted_petals[i] == 1) {
+            continue;
+        }
+        if (adj_list[i]->size() <= 1) {
+            petals.push_back(i);
+        }
+    }
+
+    for (auto i: petals) {
+        int neighbor = (*adj_list[i])[0];
+        deleted_petals[i] = 1;
+
+        // Удаление текущего узла из соседних списков
+        for (int j = 1; j < adj_list.size(); ++j)
+            adj_list[j]->erase(std::remove(adj_list[j]->begin(), adj_list[j]->end(), i), adj_list[j]->end());
+
+        // Удаление текущего узла из соседнего списка
+        adj_list[neighbor]->erase(std::remove(adj_list[neighbor]->begin(), adj_list[neighbor]->end(), i), adj_list[neighbor]->end());
+    }
+    return petals;
+}
+
 
 std::vector<int> find_desired_computers(int N, const std::vector<std::pair<int, int>>& connections) {
     std::vector<std::vector<int>*> adj_list;
@@ -93,20 +131,15 @@ std::vector<int> find_desired_computers(int N, const std::vector<std::pair<int, 
     std::vector<int> petals = {};
 
     while (true) {
+        print2(adj_list);
+        std::cout<<"-- --- --- --- --\n";
         petals = deletedPetals(adj_list, deleted_petals);
-        if (petals.size() == 0) {
+        if (petals.size() <= 2) {
             break;
         }
     }
 
-
-    std::vector<int> result;
-    for (int i = 1; i < deleted_petals.size(); i++) {
-        if (deleted_petals[i] == 0) {
-            result.push_back(i);
-        }
-    }
-    return result;
+    return petals;
 }
 
 int main() {
