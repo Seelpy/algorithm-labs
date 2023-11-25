@@ -22,51 +22,11 @@ typedef std::pair<pair, int> connection;
 typedef std::vector<connection> list;
 typedef std::map<int, bool> used;
 
-struct Checker {
-private:
-    used *use;
-public:
-    explicit Checker(used *use) {
-        this->use = use;
-    }
-    bool bigger(connection const &x, connection const &y) {
-        bool cx = (*use)[x.first.first] || (*use)[x.first.second];
-        bool cy = (*use)[y.first.first] || (*use)[y.first.second];
-        if (cx && cy || !(cx || cy)) {
-            return x.second > y.second;
-        }
-        if (cy) {
-            return true;
-        }
-        return false;
-    }
-};
-
-struct Connection {
-private:
-    Checker *checker;
-public :
-    connection con;
-
-    Connection(Checker *checker, connection con) {
-        this->checker = checker;
-        this->con = con;
-    }
-
-    friend bool operator<(Connection const &x, Connection const &y) {
-        return x.checker->bigger(x.con, y.con);
-    }
-};
-
-typedef std::priority_queue<Connection> queue;
-
-void prepareUse(list *exist, list *miss, list *result, queue *q, used *use) {
-    Checker checker(use);
+void prepareUse(list *exist, list *miss, list *result, list *q, used *use) {
     for (auto con: *miss) {
         (*use)[con.first.first] = false;
         (*use)[con.first.second] = false;
-        auto tmp = Connection(&checker, con);
-        (*q).push(tmp);
+        (*q).push_back(con);
     }
 
     for (auto con: *exist) {
@@ -75,9 +35,11 @@ void prepareUse(list *exist, list *miss, list *result, queue *q, used *use) {
     }
 }
 
+
+
 list prim(list *exist, list *miss) {
     used use;
-    queue q;
+    list q;
     list result;
 
     prepareUse(exist, miss, &result, &q, &use);
@@ -86,27 +48,30 @@ list prim(list *exist, list *miss) {
         return result;
     }
 
-    Connection con = q.top();
+    connection con = q[0];
 
     if (exist->empty()) {
-        use[con.con.first.first] = true;
-        use[con.con.first.second] = true;
-        result.push_back(con.con);
+        use[con.first.first] = true;
+        use[con.first.second] = true;
+        result.push_back(con);
     }
 
-    while (!q.empty()) {
-        con = q.top();
-        q.pop();
-        if (use[con.con.first.first] && use[con.con.first.second]) {
-            continue;
+    for (int i = 0; i < use.size() - 1; i++) {
+        connection min_con;
+        min_con.second = INT_MAX;
+        for (auto con: q) {
+            if ((use[con.first.first] || use[con.first.second]) &&
+                !(use[con.first.first] && use[con.first.second]) &&
+                    con.second < min_con.second) {
+                min_con = con;
+            }
         }
-        if (!use[con.con.first.first] && !use[con.con.first.second]) {
-            q.push(con);
-            continue;
+        if (min_con.second == INT_MAX) {
+            break;
         }
-
-        result.push_back(con.con);
-        use[con.con.first.first] = use[con.con.first.second] = true;
+        result.push_back(min_con);
+        use[min_con.first.first] = true;
+        use[min_con.first.second] = true;
     }
     return result;
 }
