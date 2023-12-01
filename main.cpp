@@ -22,14 +22,12 @@ typedef std::pair<int, int> pair;
 typedef std::pair<pair, int> connection;
 typedef std::vector<connection> list;
 typedef std::map<int, bool> used;
-typedef std::map<std::string, bool> builded;
-typedef std::map<int, std::vector<connection>> adjacency;
-typedef std::map<int, bool> nodes;
-typedef std::vector<int> list_index;
+typedef std::map<std::string, bool> build_list;
+typedef std::vector<std::vector<int>> adjacency;
 
 
-std::string generateKey(connection con) {
-    return std::to_string(con.first.first) + "-" + std::to_string(con.first.second);
+std::string generateKey(int a, int b) {
+    return std::to_string(a) + "-" + std::to_string(b);
 }
 
 void printc(connection con) {
@@ -42,131 +40,90 @@ void print(list *l){
     }
 }
 
-bool compare(connection a, connection b, builded *build) {
-    if ((*build)[generateKey(b)]) {
-        return false;
-    }
+//bool compare(connection a, connection b, build_list *build) {
+//    if ((*build)[generateKey(b)]) {
+//        return false;
+//    }
+//
+//    if ((*build)[generateKey(a)]) {
+//        return true;
+//    }
+//    return a.second < b.second;
+//}
 
-    if ((*build)[generateKey(a)]) {
-        return true;
-    }
-    return a.second < b.second;
-}
-
-bool equal(connection a, connection b) {
-    return a.first.first == b.first.first && a.first.second == b.first.second;
-}
-
-void prepareUse(list *exist, list *miss, adjacency *adj, builded *build) {
+void prepareUse(list *exist, list *miss, adjacency *adj, build_list *build) {
     for (auto con: *miss) {
-        (*adj)[con.first.first].push_back(con);
-        (*adj)[con.first.second].push_back(con);
+        (*adj)[con.first.first][con.first.second] = con.second;
+        (*adj)[con.first.second][con.first.first] = con.second;
     }
 
     for (auto con: *exist) {
-        (*adj)[con.first.first].push_back(con);
-        (*adj)[con.first.second].push_back(con);
-        (*build)[generateKey(con)] = true;
+        (*adj)[con.first.first][con.first.second] = 1;
+        (*adj)[con.first.second][con.first.first] = 1;
+        (*build)[generateKey(con.first.first, con.first.second)] = true;
     }
 }
 
 
 
-list prim(list *exist, list *miss) {
+list prim(list *exist, list *miss, int n) {
     used use;
     adjacency adj;
     list result;
-    builded build;
-    nodes list_nodes;
+    build_list build;
+
+    adj.resize(n + 1, std::vector<int>(n + 1, 0));
+
+    for (int i = 0; i < n + 1; i++) {
+        adj.push_back(std::vector<int>(n + 1, 0));
+    }
 
     prepareUse(exist, miss, &adj, &build);
+    use[1] = true;
+    int no_edge = 0;
 
-    connection min_con;
-    min_con.second = INT_MAX;
-    for (auto con: *exist) {
-        if (con.second < min_con.second && !build[generateKey(con)]) {
-            min_con = con;
-        }
-    }
-    for (auto con: *miss) {
-        if (con.second < min_con.second && !build[generateKey(con)]) {
-            min_con = con;
-        }
-    }
-    printc(min_con);
-    if (min_con.second == INT_MAX) {
-        return result;
-    }
-    use[min_con.first.first] = true;
-    list_nodes[min_con.first.first];
+    while (no_edge < n - 1 + exist->size() ) {
 
-    while (true) {
-        connection min_con;
-        min_con.second = INT_MAX;
-        int min_node;
-        for (auto one_node : list_nodes) {
-            auto node = one_node.first;
-            list_index on_delete;
-            list cons = adj[node];
-            for (int i = 0; i < cons.size(); i++) {
-                auto con = cons[i];
-                if (use[con.first.first] && use[con.first.second] && !build[generateKey(con)]) {
-                    on_delete.push_back(i);
-                    continue;
-                }
-                if (!use[con.first.first] && !use[con.first.second]) {
-                    continue;
-                }
-                if (compare(con, min_con, &build)) {
-                    min_con = con;
-                    min_node = node;
+        //For every vertex in the set S, find the all adjacent vertices
+        // , calculate the distance from the vertex selected at step 1.
+        // if the vertex is already in the set S, discard it otherwise
+        //choose another vertex nearest to selected vertex  at step 1.
+
+        int min = INT_MAX;
+        int x = 0;
+        int y = 0;
+
+        for (auto used_node: use) {
+            int i = used_node.first;
+            for (int j = 1; j < n + 1; j++) {
+                if ( adj[i][j]) { // not in selected and there is an edge
+                    if (!use[j]) {
+                        use.erase(j);
+                        if (min > adj[i][j] || build[generateKey(i, j)] || build[generateKey(j, i)]) {
+                            min = adj[i][j];
+                            x = i;
+                            y = j;
+                        }
+                    }
                 }
             }
-
-            for( auto delete_node: on_delete) {
-                cons.erase(cons.begin() + delete_node);
-            }
         }
-
-        if (min_con.second == INT_MAX) {
+        if (x == 0 && y == 0) {
             break;
         }
 
-        printc(min_con);
-        use[min_con.first.first] = true;
-        use[min_con.first.second] = true;
-
-        list_nodes.erase(min_node);
-        list_nodes[min_con.first.first];
-        list_nodes[min_con.first.second];
-
-
-        auto cons = adj[min_con.first.first];
-        int index = -1;
-        for (int i = 0;i < cons.size(); i ++) {
-            connection con = cons[i];
-            if (equal(con, min_con)) {
-                index = i;
-                break;
-            }
+        if (!build[generateKey(x, y)] && !build[generateKey(y, x)]) {
+            std::cout << x <<  " - " << y << " :  " << adj[x][y];
+            std::cout << std::endl;
+        } else {
+            std::cout << "- " << x <<  " - " << y << " :  " << adj[x][y];
+            std::cout << std::endl;
         }
-        cons.erase(cons.begin() + index);
-        adj[min_con.first.first] = cons;
-
-        cons = adj[min_con.first.second];
-        index = -1;
-        for (int i = 0; i  < cons.size(); i ++) {
-            connection con = cons[i];
-            if (equal(con, min_con)) {
-                index = i;
-                break;
-            }
-        }
-        cons.erase(cons.begin() + index);
-        adj[min_con.first.second] = cons;
-
-        result.push_back(min_con);
+        use[y] = true;
+        no_edge++;
     }
+
+
     return result;
 }
 
@@ -176,8 +133,8 @@ int main(int argc, char **argv) {
 
     std::map<int, int> map;
 
-    int bin, ex;
-    in >> bin >> ex;
+    int n, ex;
+    in >> n >> ex;
 
     list exist_cons;
     for (int i = 0; i < ex; i++){
@@ -198,7 +155,7 @@ int main(int argc, char **argv) {
 
     list min_cons;
     int sum = 0;
-    min_cons = prim(&exist_cons, &cons);
+    min_cons = prim(&exist_cons, &cons, n);
     out << "🛣️🚗Дороги: \n";
     for (auto con: min_cons) {
         sum += con.second;
