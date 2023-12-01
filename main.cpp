@@ -24,6 +24,7 @@ typedef std::vector<connection> list;
 typedef std::map<int, bool> used;
 typedef std::map<std::string, bool> build_list;
 typedef std::vector<std::vector<int>> adjacency;
+typedef std::map<int, std::map<int, int>> adjacency2;
 
 
 std::string generateKey(int a, int b) {
@@ -83,12 +84,6 @@ list prim(list *exist, list *miss, int n) {
     int no_edge = 0;
 
     while (no_edge < n - 1 + exist->size() ) {
-
-        //For every vertex in the set S, find the all adjacent vertices
-        // , calculate the distance from the vertex selected at step 1.
-        // if the vertex is already in the set S, discard it otherwise
-        //choose another vertex nearest to selected vertex  at step 1.
-
         int min = INT_MAX;
         int x = 0;
         int y = 0;
@@ -123,9 +118,84 @@ list prim(list *exist, list *miss, int n) {
         no_edge++;
     }
 
+    return result;
+}
+
+void prepareUse2(list *exist, list *miss, adjacency2 *adj, build_list *build) {
+    for (auto con: *miss) {
+        (*adj)[con.first.first][con.first.second] = con.second;
+        (*adj)[con.first.second][con.first.first] = con.second;
+    }
+
+    for (auto con: *exist) {
+        (*adj)[con.first.first][con.first.second] = -1;
+        (*adj)[con.first.second][con.first.first] = -1;
+        (*build)[generateKey(con.first.first, con.first.second)] = true;
+    }
+}
+
+list prim2(list *exist, list *miss, int n) {
+    used use;
+    adjacency2 adj;
+    list result;
+    build_list build;
+
+    prepareUse2(exist, miss, &adj, &build);
+    use[1] = true;
+    int no_edge = 0;
+
+    while (no_edge < n - 1 + exist->size() ) {
+        int min = INT_MAX;
+        int x = 0;
+        int y = 0;
+
+        for (auto used_node: use) {
+            if (!used_node.second) {
+                continue;
+            }
+            int i = used_node.first;
+            for (auto node: adj[i]) {
+                int j = node.first;
+                if (!use[j]) {
+                    int w = adj[i][j];
+                    if (min > w) {
+                        min = w;
+                        x = i;
+                        y = j;
+                        if (w < 0) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (x == 0 && y == 0) {
+            int a = 1;
+            break;
+        }
+
+        int w = adj[x][y];
+        if (w > 0) {
+            connection con;
+            con.first.first = x;
+            con.first.second = y;
+            con.second = w;
+            result.push_back(con);
+            adj[x].erase(y);
+        } else {
+            if (no_edge % 25 == 0) {
+                std::cout<<no_edge << "\n";
+            }
+            std::cout << "- " << x <<  " - " << y << " :  " << adj[x][y];
+            std::cout << std::endl;
+        }
+        use[y] = true;
+        no_edge++;
+    }
 
     return result;
 }
+
 
 int main(int argc, char **argv) {
     std::ifstream in("input.txt");
@@ -155,7 +225,7 @@ int main(int argc, char **argv) {
 
     list min_cons;
     int sum = 0;
-    min_cons = prim(&exist_cons, &cons, n);
+    min_cons = prim2(&exist_cons, &cons, n);
     out << "🛣️🚗Дороги: \n";
     for (auto con: min_cons) {
         sum += con.second;
