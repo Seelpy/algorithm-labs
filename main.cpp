@@ -76,9 +76,7 @@ std::string generateVersions(int n, int ver, int level, std::string res = "") {
     if (level <= 0) {
         return res;
     }
-    auto m = masks;
     auto t = std::bitset<6>(n).to_string();
-    auto i = n & masks[level - 1];
     if (n & masks[level - 1]) {
         if (ver & 1) {
             return generateVersions(n, ver >> 1, level - 1, res + "]");
